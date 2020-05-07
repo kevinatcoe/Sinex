@@ -21,12 +21,12 @@ namespace Sinex
         {
             #region Variables
             string bachnumb;
-            string bachsrc;
+            //string bachsrc;
             string vchnumwk;
             string vendorId;
             string docnumbr;
             int doctype;
-            string srcdoc;
+            //string srcdoc;
             decimal docamnt;
             string docdate;
             decimal mscchamt;
@@ -180,7 +180,7 @@ namespace Sinex
             private void convertFromSinexPo(SinexPo po)
             {
                 vchnumwk = po.poNumber;
-                vendorId = "ACETRAVE0001"; //  po.vendorname;
+                vendorId = "ACETRAVE0001";
                 docamnt = decimal.Parse(po.poTotal);
                 docnumbr = vchnumwk;
                 bachnumb = "1";
@@ -198,9 +198,6 @@ namespace Sinex
                 //long milliseconds = DateTime.Now.Ticks;
                 DateTime requiredByDate = po.requiredBy.FromMicrosoftTime();
                 docdate = $"{requiredByDate.ToString("yyyy-MM-dd")} 00:00:00.000";
-                //Log dateLog = new Log(@"C:\Sinex\dateLog.txt");
-                //dateLog.Clear();
-                //dateLog.Write(docdate);
             }
             public void ToLog(Log log)
             {
@@ -215,9 +212,36 @@ namespace Sinex
                     return stringwriter.ToString();
                 }
             }
-            public void InsertXml(string xmlString)
+            public string ToEconnectXML()
+            {
+                string xml = "";
+                using (var stringwriter = new System.IO.StringWriter())
+                {
+                    var serializer = new XmlSerializer(this.GetType());
+                    serializer.Serialize(stringwriter, this);
+                    xml = stringwriter.ToString();
+                    xml = xml.RemoveNode("<connection>");
+                    xml = xml.RemoveNode("PmTransaction", true);
+                    xml = xml.RemoveNode("?xml", true);
+                    xml = xml.Replace("</PmTransaction>", "");
+                    string header = "<eConnect xmlns:dt=\"urn:schemas - microsoft - com:datatypes\">";
+                    header = header + "<PMTransactionType>";
+                    header = header + "<eConnectProcessInfo>";
+                    header = header + "</eConnectProcessInfo>";
+                    header = header + "<taPMTransactionInsert>";
+                    string footer = "</taPMTransactionInsert>";
+                    footer = footer + "</PMTransactionType>";
+                    footer = footer + "</eConnect>";
+                    xml = header + xml + footer;
+                }
+                return xml;
+            }
+            public int InsertXml(string xmlString)
             {
                 string sConnectionString = "";
+                Log errorLog = new Log(@"C:\Sinex\errorLog.txt");
+                int errorCount = 0;
+                errorLog.Clear();
                 try
                 {
                     StringBuilder sb = new StringBuilder();
@@ -252,24 +276,33 @@ namespace Sinex
                     eConnectMethods eConnectObject = new eConnectMethods();
                     XmlDocument xmlDoc = new XmlDocument();
                     XmlDocument xmlDoc2 = new XmlDocument();
-                    Log xmlLog = new Log(@"C:\Sinex\xmlLog3.txt");
                     xmlString.Replace(" ", "");
-                    xmlLog.Write("-- in --");
-                    //xmlLog.Write(xmlString);
-                    //xmlLog.Write("-- sb --");
-                    //xmlLog.Write(sb.ToString());
                     xmlDoc.LoadXml(xmlString);
-                   // xmlDoc2.LoadXml(sb.ToString());
 
                     bool eConnectResult;
                     eConnectResult = eConnectObject.CreateEntity(sConnectionString, xmlDoc.OuterXml);
-                    //eConnectResult = eConnectObject.CreateEntity(sConnectionString, xmlDoc2.OuterXml);
+                    return errorCount;
                 }
                 catch (Exception ex)
                 {// If an error occurs, diplay the error information to the user
-                    MessageBox.Show(ex.Message);
-                    throw ex;
+                    errorCount = errorCount + 1;
+                    int errorLocation = ex.Message.IndexOf("Error Number =");
+                    int errorNumberLocation = errorLocation + 14;
+                    string errorNumber = ex.Message.Substring(errorNumberLocation, 6).Trim();
+                    switch (errorNumber)
+                    {
+                        case "305":
+                            errorLog.Write($"ERROR: Document Number {docnumbr} already exists");
+                            break;
+                        case "306":
+                            errorLog.Write($"ERROR: Voucher Number {vchnumwk} already exists");
+                            break;
+                        default:
+                            errorLog.Error("Pmtransaction.InsertXml", ex);
+                            break;
+                    }
                 }
+                return errorCount;
             }
             #endregion Methods
         }

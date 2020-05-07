@@ -135,6 +135,7 @@ namespace Sinex
             }
             public static void TraverseFile(string file)
             {
+                int errorCount = 0;
                 List<PurchaseOrderHeader> listPurchaseOrders = new List<PurchaseOrderHeader>();
                 PurchaseOrderHeader poHeader;
                 PmTransaction pmTransaction;
@@ -220,35 +221,34 @@ namespace Sinex
                                         log.Write($" - {po.requiredBy}, {po.poCreatedBy}, {po.shipTo}");
                                         pmTransaction = new PmTransaction(po, GetGPConnection());
                                         //pmTransaction.Insert("TWO");
-                                        string xml = pmTransaction.ToXML();
-                                        xmlLog.Write("----------------------------------------------");
+                                        string xml = pmTransaction.ToEconnectXML();
+                                        //xmlLog.Write("----------------------------------------------");
+                                        //xmlLog.Write(xml);
+                                        //xml = xml.RemoveNode("<connection>");
+                                        //xmlLog.Write("----------------------------------------------");
+                                        //xmlLog.Write(xml);
+                                        //xml = xml.RemoveNode("PmTransaction", true);
+                                        //xmlLog.Write("----------------------------------------------");
+                                        //xmlLog.Write(xml);
+                                        //xml = xml.RemoveNode("?xml", true);
+                                        //xmlLog.Write("----------------------------------------------");
+                                        //xmlLog.Write(xml);
+                                        //xml = xml.Replace("</PmTransaction>", "");
+                                        //xmlLog.Write("----------------------------------------------");
+                                        //xmlLog.Write(xml);
+                                        //string header = "<eConnect xmlns:dt=\"urn:schemas - microsoft - com:datatypes\">";
+                                        //header = header + "<PMTransactionType>";
+                                        //header = header + "<eConnectProcessInfo>";
+                                        //header = header + "</eConnectProcessInfo>";
+                                        //header = header + "<taPMTransactionInsert>";
+                                        //string footer ="</taPMTransactionInsert>";
+                                        //footer = footer + "</PMTransactionType>";
+                                        //footer = footer + "</eConnect>";
+                                        //xml = header + xml + footer;
+                                        //xmlLog.Write("----------------------------------------------");
                                         xmlLog.Write(xml);
-                                        xml = xml.RemoveNode("<connection>");
-                                        xmlLog.Write("----------------------------------------------");
-                                        xmlLog.Write(xml);
-                                        xml = xml.RemoveNode("PmTransaction", true);
-                                        xmlLog.Write("----------------------------------------------");
-                                        xmlLog.Write(xml);
-                                        xml = xml.RemoveNode("?xml", true);
-                                        xmlLog.Write("----------------------------------------------");
-                                        xmlLog.Write(xml);
-                                        xml = xml.Replace("</PmTransaction>", "");
-                                        xmlLog.Write("----------------------------------------------");
-                                        xmlLog.Write(xml);
-                                        string header = "<eConnect xmlns:dt=\"urn:schemas - microsoft - com:datatypes\">";
-                                        header = header + "<RMCustomerMasterType>";
-                                        header = header + "<eConnectProcessInfo>";
-                                        header = header + "</eConnectProcessInfo>";
-                                        header = header + "<taPMTransactionInsert>";
-                                        string footer ="</taPMTransactionInsert>";
-                                        footer = footer + "</RMCustomerMasterType>";
-                                        footer = footer + "</eConnect>";
-                                        xml = header + xml + footer;
-                                        xmlLog.Write("----------------------------------------------");
-                                        xmlLog.Write(xml);
-                                        pmTransaction.InsertXml(xml);
+                                        errorCount = errorCount + pmTransaction.InsertXml(xml);
                                         break;
-
                                     case CurrentStructure.lineLoop:
                                         recordStart = nextBracket.Index;
                                         recordEnd = file.IndexOf("}", recordStart) - 1;
