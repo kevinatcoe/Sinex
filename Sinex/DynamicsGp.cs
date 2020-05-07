@@ -180,7 +180,7 @@ namespace Sinex
             private void convertFromSinexPo(SinexPo po)
             {
                 vchnumwk = po.poNumber;
-                vendorId = "ACETRAVE0001";
+                vendorId = VendorId(po.vendorname, connection.Database);
                 docamnt = decimal.Parse(po.poTotal);
                 docnumbr = vchnumwk;
                 bachnumb = "1";
@@ -233,6 +233,7 @@ namespace Sinex
                     footer = footer + "</PMTransactionType>";
                     footer = footer + "</eConnect>";
                     xml = header + xml + footer;
+
                 }
                 return xml;
             }
@@ -303,6 +304,15 @@ namespace Sinex
                     }
                 }
                 return errorCount;
+            }
+            private string VendorId(string VendorName, string databaseName)
+            {
+                string vendorId = "ACETRAVE0001";
+                string qs = $"SELECT VENDORID FROM {databaseName}..PM00200 WHERE VENDNAME = '{VendorName}'";
+                Query q = new Tools.Query("VendorId", qs, dtString, connection, false);
+                q.Execute();
+                string vendId = q.stringResult.Trim();
+                return vendorId;
             }
             #endregion Methods
         }
